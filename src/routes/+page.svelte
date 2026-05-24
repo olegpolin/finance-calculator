@@ -6,7 +6,7 @@
   import * as Item from '$lib/components/ui/item';
   import * as Chart from '$lib/components/ui/chart';
   import { Progress } from '$lib/components/ui/progress';
-  import { ArcChart } from 'layerchart';
+  import { PieChart } from 'layerchart';
 
   type Occurrence = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
@@ -53,7 +53,7 @@
 
   const chartConfig = $derived(
     Object.fromEntries(
-      chartData.map((d) => [d.key, { label: d.label, color: d.color }])
+      chartData.map((d) => [d.label, { label: d.label, color: d.color }])
     ) as Chart.ChartConfig
   );
 
@@ -175,20 +175,33 @@
             </div>
           {:else}
             <Chart.Container config={chartConfig} class="mx-auto aspect-square max-h-75">
-              <ArcChart
+              <PieChart
                 data={chartData}
                 key="key"
                 label="label"
                 value="value"
                 c="color"
-                innerRadius={-32}
-                cornerRadius={6}
+                innerRadius={-40}
+                cornerRadius={4}
                 padAngle={0.02}
               >
                 {#snippet tooltip()}
-                  <Chart.Tooltip hideLabel />
+                  <Chart.Tooltip labelKey="label">
+                    {#snippet formatter({ value, item })}
+                      <span
+                        class="inline-block size-2.5 shrink-0 rounded-xs"
+                        style="background-color: {item.color};"
+                      ></span>
+                      <div class="flex flex-1 items-center justify-between gap-3 leading-none">
+                        <span class="text-muted-foreground">Per year</span>
+                        <span class="text-foreground font-mono font-medium tabular-nums">
+                          {currency(Number(value))}
+                        </span>
+                      </div>
+                    {/snippet}
+                  </Chart.Tooltip>
                 {/snippet}
-              </ArcChart>
+              </PieChart>
             </Chart.Container>
           {/if}
         </div>
