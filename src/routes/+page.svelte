@@ -5,6 +5,80 @@
   import * as Select from '$lib/components/ui/select';
   import * as Chart from '$lib/components/ui/chart';
   import { ArcChart } from 'layerchart';
+
+  type Occurrence = 'daily' | 'weekly' | 'monthly' | 'yearly';
+
+  type Item = {
+    id: string;
+    name: string;
+    amount: number;
+    occurrence: Occurrence;
+  };
+
+  const occurrenceOptions: { value: Occurrence; label: string }[] = [
+    { value: 'daily', label: 'Daily' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'yearly', label: 'Yearly' }
+  ];
+
+  const occurrenceMultiplier: Record<Occurrence, number> = {
+    daily: 365,
+    weekly: 52,
+    monthly: 12,
+    yearly: 1
+  };
+
+  let name = $state('');
+  let amount = $state<number | null>(null);
+  let occurrence = $state<Occurrence | ''>('');
+  let items = $state<Item[]>([]);
+
+  const yearlyFor = (item: Item) => item.amount * occurrenceMultiplier[item.occurrence];
+
+  const totalYearly = $derived(items.reduce((sum, i) => sum + yearlyFor(i), 0));
+
+  const chartData = $derived(
+    items
+      .map((item, index) => ({
+        key: item.id,
+        label: item.name,
+        value: yearlyFor(item),
+        color: `var(--chart-${(index % 5) + 1})`
+      }))
+      .sort((a, b) => b.value - a.value)
+  );
+
+  const chartConfig = $derived(
+    Object.fromEntries(
+      chartData.map((d) => [d.key, { label: d.label, color: d.color }])
+    ) as Chart.ChartConfig
+  );
+
+  const currency = (n: number) =>
+    n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+  const occurrenceLabel = $derived(
+    occurrence ? occurrenceOptions.find((o) => o.value === occurrence)?.label : 'Occurrence'
+  );
+
+  function addItem(e: Event) {
+    e.preventDefault();
+    if (!name.trim() || amount == null || amount <= 0 || !occurrence) return;
+    items.push({
+      id: crypto.randomUUID(),
+      name: name.trim(),
+      amount,
+      occurrence
+    });
+    name = '';
+    amount = null;
+    occurrence = '';
+  }
+
+  function removeItem(id: string) {
+    items = items.filter((i) => i.id !== id);
+  }
 </script>
 
 <svelte:head>
@@ -12,7 +86,146 @@
   <meta name="description" content="Calculate how much you are spending on everyday items." />
 </svelte:head>
 
-<div class="mx-auto max-w-350 px-4 pb-6 lg:px-8">
-  <h1 class="text-center">Finance Calculator</h1>
-  <p class="text-center">Calculate how much you are spending on everyday items.</p>
+<div class="mx-auto w-full max-w-5xl px-4 pb-12 lg:px-8">
+  <div class="mb-10 text-center">
+    <h1 class="text-4xl font-bold tracking-tight">Finance Calculator</h1>
+    <p class="text-muted-foreground mt-2">
+      Calculate how much you are spending on everyday items.
+    </p>
+  </div>
+
+  <div class="grid gap-8 lg:grid-cols-2">
+    <section class="space-y-6">
+      <form class="space-y-5" onsubmit={addItem}>
+        <div class="space-y-2">
+          <Label for="item-name">Enter an item</Label>
+          <Input id="item-name" placeholder="Item name" bind:value={name} />
+        </div>
+
+        <div class="space-y-2">
+          <Label for="item-amount">Enter your current spending in $</Label>
+          <Input
+            id="item-amount"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder="0"
+            bind:value={amount}
+          />
+        </div>
+
+        <div class="space-y-2">
+          <Label for="item-occurrence">Enter how often you pay for that item</Label>
+          <Select.Root type="single" bind:value={occurrence}>
+            <Select.Trigger id="item-occurrence" class="w-full">
+              {occurrenceLabel}
+            </Select.Trigger>
+            <Select.Content>
+              {#each occurrenceOptions as opt (opt.value)}
+                <Select.Item value={opt.value}>{opt.label}</Select.Item>
+              {/each}
+            </Select.Content>
+          </Select.Root>
+        </div>
+
+        <Button type="submit">Add item</Button>
+      </form>
+
+      <div class="space-y-3">
+        <h2 class="text-sm font-medium">Added items</h2>
+        {#if items.length === 0}
+          <p class="text-muted-foreground text-sm">No items added yet.</p>
+        {:else}
+          <ul class="space-y-2">
+            {#each items as item (item.id)}
+              <li
+                class="border-border bg-card flex items-center justify-between rounded-lg border p-4"
+              >
+                <div>
+                  <div class="font-medium">{item.name}</div>
+                  <div class="text-muted-foreground text-sm">
+                    {currency(item.amount)} / {item.occurrence} · {currency(yearlyFor(item))} per year
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onclick={() => removeItem(item.id)}>
+                  Remove
+                </Button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+      </div>
+    </section>
+
+    <section class="space-y-6">
+      <div class="border-border bg-card rounded-xl border p-6">
+        <div class="text-muted-foreground text-sm">Total yearly spending</div>
+        <div class="text-primary mt-1 text-4xl font-bold tabular-nums">
+          {currency(totalYearly)}
+        </div>
+
+        <div class="mt-6">
+          {#if chartData.length === 0}
+            <div
+              class="text-muted-foreground flex aspect-square items-center justify-center text-sm"
+            >
+              Add an item to see the breakdown.
+            </div>
+          {:else}
+            <Chart.Container config={chartConfig} class="mx-auto aspect-square max-h-75">
+              <ArcChart
+                data={chartData}
+                key="key"
+                label="label"
+                value="value"
+                c="color"
+                innerRadius={-32}
+                cornerRadius={6}
+                padAngle={0.02}
+              >
+                {#snippet tooltip()}
+                  <Chart.Tooltip hideLabel />
+                {/snippet}
+              </ArcChart>
+            </Chart.Container>
+          {/if}
+        </div>
+      </div>
+
+      {#if chartData.length > 0}
+        <div class="space-y-3">
+          <h2 class="text-sm font-medium">Top spending contributors</h2>
+          <ul class="space-y-2">
+            {#each chartData.slice(0, 3) as entry (entry.key)}
+              {@const pct = totalYearly > 0 ? (entry.value / totalYearly) * 100 : 0}
+              <li class="border-border bg-card rounded-lg border p-4">
+                <div class="flex items-center justify-between">
+                  <span class="flex items-center gap-2 font-medium">
+                    <span
+                      class="inline-block size-2.5 rounded-xs"
+                      style="background-color: {entry.color};"
+                    ></span>
+                    {entry.label}
+                  </span>
+                  <span class="text-muted-foreground text-sm tabular-nums">
+                    {pct.toFixed(1)}%
+                  </span>
+                </div>
+                <div class="mt-1 text-2xl font-semibold tabular-nums">
+                  {currency(entry.value)}
+                </div>
+                <div class="text-muted-foreground text-xs">Per year</div>
+                <div class="bg-muted mt-3 h-2 w-full overflow-hidden rounded-full">
+                  <div
+                    class="h-full rounded-full"
+                    style="width: {pct}%; background-color: {entry.color};"
+                  ></div>
+                </div>
+              </li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
+    </section>
+  </div>
 </div>
