@@ -12,5 +12,7 @@
   <meta name="description" content="Calculate how much you are spending on everyday items." />
 </svelte:head>
 
-<h1>Finance Calculator</h1>
-<p>Calculate how much you are spending on everyday items.</p>
+<div class="mx-auto max-w-350 px-4 pb-6 lg:px-8">
+  <h1 class="text-center">Finance Calculator</h1>
+  <p class="text-center">Calculate how much you are spending on everyday items.</p>
+</div>
