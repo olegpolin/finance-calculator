@@ -45,7 +45,7 @@
       .map((item, index) => ({
         ...item,
         yearly: yearlyFor(item),
-        color: `var(--chart-${(index % 5) + 1})`
+        color: `var(--chart-${(index % 10) + 1})`
       }))
       .sort((a, b) => b.yearly - a.yearly)
   );
