@@ -40,20 +40,27 @@
 
   const totalYearly = $derived(items.reduce((sum, i) => sum + yearlyFor(i), 0));
 
-  const chartData = $derived(
+  const sortedItems = $derived(
     items
       .map((item, index) => ({
-        key: item.id,
-        label: item.name,
-        value: yearlyFor(item),
+        ...item,
+        yearly: yearlyFor(item),
         color: `var(--chart-${(index % 5) + 1})`
       }))
-      .sort((a, b) => b.value - a.value)
+      .sort((a, b) => b.yearly - a.yearly)
+  );
+
+  const chartData = $derived(
+    sortedItems.map((item) => ({
+      key: item.id,
+      value: item.yearly,
+      color: `var(--color-${item.id})`
+    }))
   );
 
   const chartConfig = $derived(
     Object.fromEntries(
-      chartData.map((d) => [d.label, { label: d.label, color: d.color }])
+      sortedItems.map((item) => [item.id, { label: item.name, color: item.color }])
     ) as Chart.ChartConfig
   );
 
@@ -178,28 +185,14 @@
               <PieChart
                 data={chartData}
                 key="key"
-                label="label"
                 value="value"
                 c="color"
-                innerRadius={-40}
-                cornerRadius={4}
-                padAngle={0.02}
+                innerRadius={60}
+                padding={29}
+                props={{ pie: { motion: 'tween' } }}
               >
                 {#snippet tooltip()}
-                  <Chart.Tooltip labelKey="label">
-                    {#snippet formatter({ value, item })}
-                      <span
-                        class="inline-block size-2.5 shrink-0 rounded-xs"
-                        style="background-color: {item.color};"
-                      ></span>
-                      <div class="flex flex-1 items-center justify-between gap-3 leading-none">
-                        <span class="text-muted-foreground">Per year</span>
-                        <span class="text-foreground font-mono font-medium tabular-nums">
-                          {currency(Number(value))}
-                        </span>
-                      </div>
-                    {/snippet}
-                  </Chart.Tooltip>
+                  <Chart.Tooltip hideLabel />
                 {/snippet}
               </PieChart>
             </Chart.Container>
@@ -207,12 +200,12 @@
         </div>
       </div>
 
-      {#if chartData.length > 0}
+      {#if sortedItems.length > 0}
         <div class="space-y-3">
           <h2 class="text-sm font-medium">Top spending contributors</h2>
           <Item.Group class="gap-2">
-            {#each chartData.slice(0, 3) as entry (entry.key)}
-              {@const pct = totalYearly > 0 ? (entry.value / totalYearly) * 100 : 0}
+            {#each sortedItems.slice(0, 3) as entry (entry.id)}
+              {@const pct = totalYearly > 0 ? (entry.yearly / totalYearly) * 100 : 0}
               <Item.Root variant="outline">
                 <Item.Media>
                   <span
@@ -221,9 +214,9 @@
                   ></span>
                 </Item.Media>
                 <Item.Content>
-                  <Item.Title>{entry.label}</Item.Title>
+                  <Item.Title>{entry.name}</Item.Title>
                   <Item.Description>
-                    {currency(entry.value)} · Per year
+                    {currency(entry.yearly)} · Per year
                   </Item.Description>
                   <Progress value={pct} class="mt-2 h-2" style="--primary: {entry.color};" />
                 </Item.Content>
