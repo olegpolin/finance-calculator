@@ -3,12 +3,13 @@
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
   import * as Select from '$lib/components/ui/select';
+  import * as Item from '$lib/components/ui/item';
   import * as Chart from '$lib/components/ui/chart';
   import { ArcChart } from 'layerchart';
 
   type Occurrence = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
-  type Item = {
+  type SpendingItem = {
     id: string;
     name: string;
     amount: number;
@@ -32,9 +33,9 @@
   let name = $state('');
   let amount = $state<number | null>(null);
   let occurrence = $state<Occurrence | ''>('');
-  let items = $state<Item[]>([]);
+  let items = $state<SpendingItem[]>([]);
 
-  const yearlyFor = (item: Item) => item.amount * occurrenceMultiplier[item.occurrence];
+  const yearlyFor = (item: SpendingItem) => item.amount * occurrenceMultiplier[item.occurrence];
 
   const totalYearly = $derived(items.reduce((sum, i) => sum + yearlyFor(i), 0));
 
@@ -136,23 +137,23 @@
         {#if items.length === 0}
           <p class="text-muted-foreground text-sm">No items added yet.</p>
         {:else}
-          <ul class="space-y-2">
+          <Item.Group class="gap-2">
             {#each items as item (item.id)}
-              <li
-                class="border-border bg-card flex items-center justify-between rounded-lg border p-4"
-              >
-                <div>
-                  <div class="font-medium">{item.name}</div>
-                  <div class="text-muted-foreground text-sm">
+              <Item.Root variant="outline">
+                <Item.Content>
+                  <Item.Title>{item.name}</Item.Title>
+                  <Item.Description>
                     {currency(item.amount)} / {item.occurrence} · {currency(yearlyFor(item))} per year
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm" onclick={() => removeItem(item.id)}>
-                  Remove
-                </Button>
-              </li>
+                  </Item.Description>
+                </Item.Content>
+                <Item.Actions>
+                  <Button variant="ghost" size="sm" onclick={() => removeItem(item.id)}>
+                    Remove
+                  </Button>
+                </Item.Actions>
+              </Item.Root>
             {/each}
-          </ul>
+          </Item.Group>
         {/if}
       </div>
     </section>
@@ -195,35 +196,36 @@
       {#if chartData.length > 0}
         <div class="space-y-3">
           <h2 class="text-sm font-medium">Top spending contributors</h2>
-          <ul class="space-y-2">
+          <Item.Group class="gap-2">
             {#each chartData.slice(0, 3) as entry (entry.key)}
               {@const pct = totalYearly > 0 ? (entry.value / totalYearly) * 100 : 0}
-              <li class="border-border bg-card rounded-lg border p-4">
-                <div class="flex items-center justify-between">
-                  <span class="flex items-center gap-2 font-medium">
-                    <span
-                      class="inline-block size-2.5 rounded-xs"
-                      style="background-color: {entry.color};"
-                    ></span>
-                    {entry.label}
-                  </span>
+              <Item.Root variant="outline">
+                <Item.Media>
+                  <span
+                    class="inline-block size-3 rounded-xs"
+                    style="background-color: {entry.color};"
+                  ></span>
+                </Item.Media>
+                <Item.Content>
+                  <Item.Title>{entry.label}</Item.Title>
+                  <Item.Description>
+                    {currency(entry.value)} · Per year
+                  </Item.Description>
+                  <div class="bg-muted mt-2 h-2 w-full overflow-hidden rounded-full">
+                    <div
+                      class="h-full rounded-full"
+                      style="width: {pct}%; background-color: {entry.color};"
+                    ></div>
+                  </div>
+                </Item.Content>
+                <Item.Actions>
                   <span class="text-muted-foreground text-sm tabular-nums">
                     {pct.toFixed(1)}%
                   </span>
-                </div>
-                <div class="mt-1 text-2xl font-semibold tabular-nums">
-                  {currency(entry.value)}
-                </div>
-                <div class="text-muted-foreground text-xs">Per year</div>
-                <div class="bg-muted mt-3 h-2 w-full overflow-hidden rounded-full">
-                  <div
-                    class="h-full rounded-full"
-                    style="width: {pct}%; background-color: {entry.color};"
-                  ></div>
-                </div>
-              </li>
+                </Item.Actions>
+              </Item.Root>
             {/each}
-          </ul>
+          </Item.Group>
         </div>
       {/if}
     </section>
