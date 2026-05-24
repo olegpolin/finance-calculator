@@ -7,5 +7,10 @@
   import { ArcChart } from 'layerchart';
 </script>
 
+<svelte:head>
+  <title>Finance Calculator</title>
+  <meta name="description" content="Calculate how much you are spending on everyday items." />
+</svelte:head>
+
 <h1>Finance Calculator</h1>
 <p>Calculate how much you are spending on everyday items.</p>
