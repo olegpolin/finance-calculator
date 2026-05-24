@@ -5,6 +5,7 @@
   import * as Select from '$lib/components/ui/select';
   import * as Item from '$lib/components/ui/item';
   import * as Chart from '$lib/components/ui/chart';
+  import { Progress } from '$lib/components/ui/progress';
   import { ArcChart } from 'layerchart';
 
   type Occurrence = 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -211,12 +212,7 @@
                   <Item.Description>
                     {currency(entry.value)} · Per year
                   </Item.Description>
-                  <div class="bg-muted mt-2 h-2 w-full overflow-hidden rounded-full">
-                    <div
-                      class="h-full rounded-full"
-                      style="width: {pct}%; background-color: {entry.color};"
-                    ></div>
-                  </div>
+                  <Progress value={pct} class="mt-2 h-2" style="--primary: {entry.color};" />
                 </Item.Content>
                 <Item.Actions>
                   <span class="text-muted-foreground text-sm tabular-nums">
