@@ -66,6 +66,21 @@
   let name = $state('');
   let amount = $state<number | null>(null);
   let occurrence = $state<Occurrence | ''>('');
+  let submitted = $state(false);
+
+  const nameError = $derived(submitted && !name.trim() ? 'Enter an item name.' : null);
+  const amountError = $derived(
+    submitted
+      ? amount == null
+        ? 'Enter an amount.'
+        : amount <= 0
+          ? 'Amount must be greater than 0.'
+          : null
+      : null
+  );
+  const occurrenceError = $derived(
+    submitted && !occurrence ? 'Choose how often you pay.' : null
+  );
 
   const items = $derived(persistedItems.current);
 
@@ -106,6 +121,7 @@
 
   function addItem(e: Event) {
     e.preventDefault();
+    submitted = true;
     if (!name.trim() || amount == null || amount <= 0 || !occurrence) return;
     persistedItems.current = [
       ...persistedItems.current,
@@ -119,6 +135,7 @@
     name = '';
     amount = null;
     occurrence = '';
+    submitted = false;
   }
 
   function removeItem(id: string) {
@@ -149,7 +166,19 @@
       >
         <div class="space-y-2">
           <Label for="item-name" class="font-bold">Enter an item</Label>
-          <Input id="item-name" placeholder="Item name" bind:value={name} />
+          <Input
+            id="item-name"
+            placeholder="Item name"
+            bind:value={name}
+            required
+            aria-invalid={nameError ? 'true' : undefined}
+            aria-describedby={nameError ? 'item-name-error' : undefined}
+          />
+          {#if nameError}
+            <p id="item-name-error" class="text-destructive text-sm font-medium">
+              {nameError}
+            </p>
+          {/if}
         </div>
 
         <div class="space-y-2">
@@ -157,11 +186,19 @@
           <Input
             id="item-amount"
             type="number"
-            min="0"
+            min="0.01"
             step="0.01"
             placeholder="0"
             bind:value={amount}
+            required
+            aria-invalid={amountError ? 'true' : undefined}
+            aria-describedby={amountError ? 'item-amount-error' : undefined}
           />
+          {#if amountError}
+            <p id="item-amount-error" class="text-destructive text-sm font-medium">
+              {amountError}
+            </p>
+          {/if}
         </div>
 
         <div class="space-y-2">
@@ -169,7 +206,12 @@
             Enter how often you pay for that item
           </Label>
           <Select.Root type="single" bind:value={occurrence}>
-            <Select.Trigger id="item-occurrence" class="w-full">
+            <Select.Trigger
+              id="item-occurrence"
+              class="w-full"
+              aria-invalid={occurrenceError ? 'true' : undefined}
+              aria-describedby={occurrenceError ? 'item-occurrence-error' : undefined}
+            >
               {occurrenceLabel}
             </Select.Trigger>
             <Select.Content>
@@ -178,6 +220,11 @@
               {/each}
             </Select.Content>
           </Select.Root>
+          {#if occurrenceError}
+            <p id="item-occurrence-error" class="text-destructive text-sm font-medium">
+              {occurrenceError}
+            </p>
+          {/if}
         </div>
 
         <Button type="submit" class="w-full">Add item</Button>
