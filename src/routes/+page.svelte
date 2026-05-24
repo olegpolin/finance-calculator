@@ -256,7 +256,7 @@
         <div class="space-y-3">
           <h2 class="text-sm font-black uppercase tracking-wide">Top spending contributors</h2>
           <Item.Group class="gap-3">
-            {#each sortedItems.slice(0, 3) as entry (entry.id)}
+            {#each sortedItems as entry (entry.id)}
               {@const pct = totalYearly > 0 ? (entry.yearly / totalYearly) * 100 : 0}
               <Item.Root variant="outline">
                 <Item.Media>
