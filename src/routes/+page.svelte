@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
@@ -17,6 +18,22 @@
     occurrence: Occurrence;
   };
 
+  const STORAGE_KEY = 'finance-calculator:items';
+  const validOccurrences: Occurrence[] = ['daily', 'weekly', 'monthly', 'yearly'];
+
+  function isSpendingItem(x: unknown): x is SpendingItem {
+    if (typeof x !== 'object' || x === null) return false;
+    const v = x as Record<string, unknown>;
+    return (
+      typeof v.id === 'string' &&
+      typeof v.name === 'string' &&
+      typeof v.amount === 'number' &&
+      Number.isFinite(v.amount) &&
+      typeof v.occurrence === 'string' &&
+      validOccurrences.includes(v.occurrence as Occurrence)
+    );
+  }
+
   const occurrenceOptions: { value: Occurrence; label: string }[] = [
     { value: 'daily', label: 'Daily' },
     { value: 'weekly', label: 'Weekly' },
@@ -31,10 +48,35 @@
     yearly: 1
   };
 
+  let hydrated = $state(false);
   let name = $state('');
   let amount = $state<number | null>(null);
   let occurrence = $state<Occurrence | ''>('');
   let items = $state<SpendingItem[]>([]);
+
+  onMount(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed: unknown = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          items = parsed.filter(isSpendingItem);
+        }
+      }
+    } catch {
+      // ignore parse / storage errors
+    }
+    hydrated = true;
+  });
+
+  $effect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    } catch {
+      // ignore storage errors (quota, private mode, etc.)
+    }
+  });
 
   const yearlyFor = (item: SpendingItem) => item.amount * occurrenceMultiplier[item.occurrence];
 
