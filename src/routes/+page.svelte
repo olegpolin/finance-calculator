@@ -187,7 +187,7 @@
                 key="key"
                 value="value"
                 c="color"
-                innerRadius={60}
+                innerRadius={90}
                 padding={29}
                 props={{ pie: { motion: 'tween' } }}
               >
