@@ -7,7 +7,7 @@
   import { buttonVariants } from "$lib/components/ui/button/index.js";
 </script>
 
-<header class="flex jusitfy-end p-6">
+<header class="flex justify-end p-6">
   <DropdownMenu.Root>
     <DropdownMenu.Trigger
       class={buttonVariants({ variant: "outline", size: "icon" })}
