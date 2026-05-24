@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { PersistedState } from 'runed';
   import { Button } from '$lib/components/ui/button';
   import { Input } from '$lib/components/ui/input';
   import { Label } from '$lib/components/ui/label';
@@ -34,6 +34,21 @@
     );
   }
 
+  const persistedItems = new PersistedState<SpendingItem[]>(STORAGE_KEY, [], {
+    serializer: {
+      serialize: JSON.stringify,
+      deserialize: (raw) => {
+        try {
+          const parsed: unknown = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed.filter(isSpendingItem);
+        } catch {
+          // fall through to default
+        }
+        return [];
+      }
+    }
+  });
+
   const occurrenceOptions: { value: Occurrence; label: string }[] = [
     { value: 'daily', label: 'Daily' },
     { value: 'weekly', label: 'Weekly' },
@@ -48,35 +63,11 @@
     yearly: 1
   };
 
-  let hydrated = $state(false);
   let name = $state('');
   let amount = $state<number | null>(null);
   let occurrence = $state<Occurrence | ''>('');
-  let items = $state<SpendingItem[]>([]);
 
-  onMount(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed: unknown = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          items = parsed.filter(isSpendingItem);
-        }
-      }
-    } catch {
-      // ignore parse / storage errors
-    }
-    hydrated = true;
-  });
-
-  $effect(() => {
-    if (!hydrated) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    } catch {
-      // ignore storage errors (quota, private mode, etc.)
-    }
-  });
+  const items = $derived(persistedItems.current);
 
   const yearlyFor = (item: SpendingItem) => item.amount * occurrenceMultiplier[item.occurrence];
 
@@ -116,19 +107,22 @@
   function addItem(e: Event) {
     e.preventDefault();
     if (!name.trim() || amount == null || amount <= 0 || !occurrence) return;
-    items.push({
-      id: crypto.randomUUID(),
-      name: name.trim(),
-      amount,
-      occurrence
-    });
+    persistedItems.current = [
+      ...persistedItems.current,
+      {
+        id: crypto.randomUUID(),
+        name: name.trim(),
+        amount,
+        occurrence
+      }
+    ];
     name = '';
     amount = null;
     occurrence = '';
   }
 
   function removeItem(id: string) {
-    items = items.filter((i) => i.id !== id);
+    persistedItems.current = persistedItems.current.filter((i) => i.id !== id);
   }
 </script>
 
