@@ -196,7 +196,10 @@
                 c="color"
                 innerRadius={90}
                 padding={29}
-                props={{ pie: { motion: 'tween' } }}
+                props={{
+                  pie: { motion: 'tween' },
+                  arc: { class: 'stroke-2 stroke-border' }
+                }}
               >
                 {#snippet tooltip()}
                   <Chart.Tooltip hideLabel />
