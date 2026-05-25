@@ -14,6 +14,7 @@
     href="https://github.com/olegpolin/finance-calculator"
     target="_blank"
     rel="noopener noreferrer"
+    aria-label="GitHub repository"
   >
     <svg class="fill-foreground" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 98 96">
       <path
