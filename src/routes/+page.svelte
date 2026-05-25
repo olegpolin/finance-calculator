@@ -63,14 +63,15 @@
     yearly: 1
   };
 
+  // Add-form state (top of page)
   let name = $state('');
   let amount = $state<number | null>(null);
   let occurrence = $state<Occurrence | ''>('');
-  let submitted = $state(false);
+  let addSubmitted = $state(false);
 
-  const nameError = $derived(submitted && !name.trim() ? 'Enter an item name.' : null);
+  const nameError = $derived(addSubmitted && !name.trim() ? 'Enter an item name.' : null);
   const amountError = $derived(
-    submitted
+    addSubmitted
       ? amount == null
         ? 'Enter an amount.'
         : amount <= 0
@@ -79,7 +80,36 @@
       : null
   );
   const occurrenceError = $derived(
-    submitted && !occurrence ? 'Choose how often you pay.' : null
+    addSubmitted && !occurrence ? 'Choose how often you pay.' : null
+  );
+
+  // Inline-edit state (one row at a time)
+  let editingId = $state<string | null>(null);
+  let editName = $state('');
+  let editAmount = $state<number | null>(null);
+  let editOccurrence = $state<Occurrence | ''>('');
+  let editSubmitted = $state(false);
+  let editNameInputEl = $state<HTMLInputElement | null>(null);
+
+  const editNameError = $derived(
+    editSubmitted && !editName.trim() ? 'Enter an item name.' : null
+  );
+  const editAmountError = $derived(
+    editSubmitted
+      ? editAmount == null
+        ? 'Enter an amount.'
+        : editAmount <= 0
+          ? 'Amount must be greater than 0.'
+          : null
+      : null
+  );
+  const editOccurrenceError = $derived(
+    editSubmitted && !editOccurrence ? 'Choose how often you pay.' : null
+  );
+  const editOccurrenceLabel = $derived(
+    editOccurrence
+      ? occurrenceOptions.find((o) => o.value === editOccurrence)?.label
+      : 'Occurrence'
   );
 
   const items = $derived(persistedItems.current);
@@ -119,9 +149,37 @@
     occurrence ? occurrenceOptions.find((o) => o.value === occurrence)?.label : 'Occurrence'
   );
 
+  function resetAddForm() {
+    name = '';
+    amount = null;
+    occurrence = '';
+    addSubmitted = false;
+  }
+
+  function resetEdit() {
+    editingId = null;
+    editName = '';
+    editAmount = null;
+    editOccurrence = '';
+    editSubmitted = false;
+  }
+
+  function startEdit(item: SpendingItem) {
+    editingId = item.id;
+    editName = item.name;
+    editAmount = item.amount;
+    editOccurrence = item.occurrence;
+    editSubmitted = false;
+    queueMicrotask(() => editNameInputEl?.focus());
+  }
+
+  function cancelEdit() {
+    resetEdit();
+  }
+
   function addItem(e: Event) {
     e.preventDefault();
-    submitted = true;
+    addSubmitted = true;
     if (!name.trim() || amount == null || amount <= 0 || !occurrence) return;
     persistedItems.current = [
       ...persistedItems.current,
@@ -132,14 +190,29 @@
         occurrence
       }
     ];
-    name = '';
-    amount = null;
-    occurrence = '';
-    submitted = false;
+    resetAddForm();
+  }
+
+  function saveEdit(e: Event) {
+    e.preventDefault();
+    editSubmitted = true;
+    if (!editName.trim() || editAmount == null || editAmount <= 0 || !editOccurrence) return;
+    const id = editingId;
+    if (!id) return;
+    const trimmed = editName.trim();
+    const newAmount = editAmount;
+    const newOccurrence = editOccurrence;
+    persistedItems.current = persistedItems.current.map((i) =>
+      i.id === id
+        ? { ...i, name: trimmed, amount: newAmount, occurrence: newOccurrence }
+        : i
+    );
+    resetEdit();
   }
 
   function removeItem(id: string) {
     persistedItems.current = persistedItems.current.filter((i) => i.id !== id);
+    if (editingId === id) resetEdit();
   }
 </script>
 
@@ -237,19 +310,132 @@
         {:else}
           <Item.Group class="gap-3">
             {#each items as item (item.id)}
-              <Item.Root variant="outline">
-                <Item.Content>
-                  <Item.Title class="font-bold">{item.name}</Item.Title>
-                  <Item.Description>
-                    {currency(item.amount)} / {item.occurrence} · {currency(yearlyFor(item))} per year
-                  </Item.Description>
-                </Item.Content>
-                <Item.Actions>
-                  <Button variant="outline" size="sm" onclick={() => removeItem(item.id)}>
-                    Remove
-                  </Button>
-                </Item.Actions>
-              </Item.Root>
+              {#if editingId === item.id}
+                <form
+                  class="border-2 border-border bg-card rounded-md shadow-md p-4 space-y-3"
+                  onsubmit={saveEdit}
+                >
+                  <div class="space-y-1">
+                    <Label for={`edit-name-${item.id}`} class="text-xs font-bold uppercase">
+                      Name
+                    </Label>
+                    <Input
+                      id={`edit-name-${item.id}`}
+                      bind:ref={editNameInputEl}
+                      bind:value={editName}
+                      required
+                      aria-invalid={editNameError ? 'true' : undefined}
+                      aria-describedby={editNameError ? `edit-name-${item.id}-error` : undefined}
+                    />
+                    {#if editNameError}
+                      <p
+                        id={`edit-name-${item.id}-error`}
+                        class="text-destructive text-xs font-medium"
+                      >
+                        {editNameError}
+                      </p>
+                    {/if}
+                  </div>
+
+                  <div class="grid gap-3 sm:grid-cols-2">
+                    <div class="space-y-1">
+                      <Label
+                        for={`edit-amount-${item.id}`}
+                        class="text-xs font-bold uppercase"
+                      >
+                        Amount ($)
+                      </Label>
+                      <Input
+                        id={`edit-amount-${item.id}`}
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        bind:value={editAmount}
+                        required
+                        aria-invalid={editAmountError ? 'true' : undefined}
+                        aria-describedby={editAmountError
+                          ? `edit-amount-${item.id}-error`
+                          : undefined}
+                      />
+                      {#if editAmountError}
+                        <p
+                          id={`edit-amount-${item.id}-error`}
+                          class="text-destructive text-xs font-medium"
+                        >
+                          {editAmountError}
+                        </p>
+                      {/if}
+                    </div>
+                    <div class="space-y-1">
+                      <Label
+                        for={`edit-occurrence-${item.id}`}
+                        class="text-xs font-bold uppercase"
+                      >
+                        Frequency
+                      </Label>
+                      <Select.Root type="single" bind:value={editOccurrence}>
+                        <Select.Trigger
+                          id={`edit-occurrence-${item.id}`}
+                          class="w-full"
+                          aria-invalid={editOccurrenceError ? 'true' : undefined}
+                          aria-describedby={editOccurrenceError
+                            ? `edit-occurrence-${item.id}-error`
+                            : undefined}
+                        >
+                          {editOccurrenceLabel}
+                        </Select.Trigger>
+                        <Select.Content>
+                          {#each occurrenceOptions as opt (opt.value)}
+                            <Select.Item value={opt.value}>{opt.label}</Select.Item>
+                          {/each}
+                        </Select.Content>
+                      </Select.Root>
+                      {#if editOccurrenceError}
+                        <p
+                          id={`edit-occurrence-${item.id}-error`}
+                          class="text-destructive text-xs font-medium"
+                        >
+                          {editOccurrenceError}
+                        </p>
+                      {/if}
+                    </div>
+                  </div>
+
+                  <div class="flex justify-end gap-2">
+                    <Button type="button" variant="outline" size="sm" onclick={cancelEdit}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" size="sm">Save</Button>
+                  </div>
+                </form>
+              {:else}
+                <Item.Root variant="outline">
+                  <Item.Content>
+                    <Item.Title class="font-bold">{item.name}</Item.Title>
+                    <Item.Description>
+                      {currency(item.amount)} / {item.occurrence} · {currency(yearlyFor(item))} per year
+                    </Item.Description>
+                  </Item.Content>
+                  <Item.Actions class="gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      aria-label={`Edit ${item.name}`}
+                      onclick={() => startEdit(item)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      aria-label={`Remove ${item.name}`}
+                      onclick={() => removeItem(item.id)}
+                    >
+                      Remove
+                    </Button>
+                  </Item.Actions>
+                </Item.Root>
+              {/if}
             {/each}
           </Item.Group>
         {/if}
