@@ -21,8 +21,29 @@
     occurrence: Occurrence;
   };
 
+  type FormErrors = {
+    name: string | null;
+    amount: string | null;
+    occurrence: string | null;
+  };
+
   const STORAGE_KEY = 'finance-calculator:items';
-  const validOccurrences: Occurrence[] = ['daily', 'weekly', 'monthly', 'yearly'];
+
+  const occurrenceOptions: { value: Occurrence; label: string }[] = [
+    { value: 'daily', label: 'Daily' },
+    { value: 'weekly', label: 'Weekly' },
+    { value: 'monthly', label: 'Monthly' },
+    { value: 'yearly', label: 'Yearly' }
+  ];
+
+  const occurrenceMultiplier: Record<Occurrence, number> = {
+    daily: 365,
+    weekly: 52,
+    monthly: 12,
+    yearly: 1
+  };
+
+  const validOccurrences = occurrenceOptions.map((o) => o.value);
 
   function isSpendingItem(x: unknown): x is SpendingItem {
     if (typeof x !== 'object' || x === null) return false;
@@ -35,6 +56,30 @@
       typeof v.occurrence === 'string' &&
       validOccurrences.includes(v.occurrence as Occurrence)
     );
+  }
+
+  const yearlyFor = (item: SpendingItem) => item.amount * occurrenceMultiplier[item.occurrence];
+
+  const currency = (n: number) =>
+    n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+  function validateForm(
+    submitted: boolean,
+    name: string,
+    amount: number | null,
+    occurrence: Occurrence | ''
+  ): FormErrors {
+    if (!submitted) return { name: null, amount: null, occurrence: null };
+    return {
+      name: !name.trim() ? 'Enter an item name.' : null,
+      amount:
+        amount == null
+          ? 'Enter an amount.'
+          : amount <= 0
+            ? 'Amount must be greater than 0.'
+            : null,
+      occurrence: !occurrence ? 'Choose how often you pay.' : null
+    };
   }
 
   const persistedItems = new PersistedState<SpendingItem[]>(STORAGE_KEY, [], {
@@ -52,20 +97,6 @@
     }
   });
 
-  const occurrenceOptions: { value: Occurrence; label: string }[] = [
-    { value: 'daily', label: 'Daily' },
-    { value: 'weekly', label: 'Weekly' },
-    { value: 'monthly', label: 'Monthly' },
-    { value: 'yearly', label: 'Yearly' }
-  ];
-
-  const occurrenceMultiplier: Record<Occurrence, number> = {
-    daily: 365,
-    weekly: 52,
-    monthly: 12,
-    yearly: 1
-  };
-
   // Period view (yearly vs monthly) — data stays normalized to yearly internally.
   let monthly = $state(false);
   const periodLabel = $derived(monthly ? 'month' : 'year');
@@ -78,19 +109,7 @@
   let occurrence = $state<Occurrence | ''>('');
   let addSubmitted = $state(false);
 
-  const nameError = $derived(addSubmitted && !name.trim() ? 'Enter an item name.' : null);
-  const amountError = $derived(
-    addSubmitted
-      ? amount == null
-        ? 'Enter an amount.'
-        : amount <= 0
-          ? 'Amount must be greater than 0.'
-          : null
-      : null
-  );
-  const occurrenceError = $derived(
-    addSubmitted && !occurrence ? 'Choose how often you pay.' : null
-  );
+  const addErrors = $derived(validateForm(addSubmitted, name, amount, occurrence));
 
   // Inline-edit state (one row at a time)
   let editingId = $state<string | null>(null);
@@ -100,20 +119,8 @@
   let editSubmitted = $state(false);
   let editNameInputEl = $state<HTMLInputElement | null>(null);
 
-  const editNameError = $derived(
-    editSubmitted && !editName.trim() ? 'Enter an item name.' : null
-  );
-  const editAmountError = $derived(
-    editSubmitted
-      ? editAmount == null
-        ? 'Enter an amount.'
-        : editAmount <= 0
-          ? 'Amount must be greater than 0.'
-          : null
-      : null
-  );
-  const editOccurrenceError = $derived(
-    editSubmitted && !editOccurrence ? 'Choose how often you pay.' : null
+  const editErrors = $derived(
+    validateForm(editSubmitted, editName, editAmount, editOccurrence)
   );
   const editOccurrenceLabel = $derived(
     editOccurrence
@@ -122,8 +129,6 @@
   );
 
   const items = $derived(persistedItems.current);
-
-  const yearlyFor = (item: SpendingItem) => item.amount * occurrenceMultiplier[item.occurrence];
 
   const totalYearly = $derived(items.reduce((sum, i) => sum + yearlyFor(i), 0));
 
@@ -151,9 +156,6 @@
       sortedItems.map((item) => [item.id, { label: item.name, color: item.color }])
     ) as Chart.ChartConfig
   );
-
-  const currency = (n: number) =>
-    n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
   const occurrenceLabel = $derived(
     occurrence ? occurrenceOptions.find((o) => o.value === occurrence)?.label : 'Occurrence'
@@ -259,12 +261,12 @@
             placeholder="Item name"
             bind:value={name}
             required
-            aria-invalid={nameError ? 'true' : undefined}
-            aria-describedby={nameError ? 'item-name-error' : undefined}
+            aria-invalid={addErrors.name ? 'true' : undefined}
+            aria-describedby={addErrors.name ? 'item-name-error' : undefined}
           />
-          {#if nameError}
+          {#if addErrors.name}
             <p id="item-name-error" class="text-destructive text-sm font-medium">
-              {nameError}
+              {addErrors.name}
             </p>
           {/if}
         </div>
@@ -279,12 +281,12 @@
             placeholder="0"
             bind:value={amount}
             required
-            aria-invalid={amountError ? 'true' : undefined}
-            aria-describedby={amountError ? 'item-amount-error' : undefined}
+            aria-invalid={addErrors.amount ? 'true' : undefined}
+            aria-describedby={addErrors.amount ? 'item-amount-error' : undefined}
           />
-          {#if amountError}
+          {#if addErrors.amount}
             <p id="item-amount-error" class="text-destructive text-sm font-medium">
-              {amountError}
+              {addErrors.amount}
             </p>
           {/if}
         </div>
@@ -297,8 +299,8 @@
             <Select.Trigger
               id="item-occurrence"
               class="w-full"
-              aria-invalid={occurrenceError ? 'true' : undefined}
-              aria-describedby={occurrenceError ? 'item-occurrence-error' : undefined}
+              aria-invalid={addErrors.occurrence ? 'true' : undefined}
+              aria-describedby={addErrors.occurrence ? 'item-occurrence-error' : undefined}
             >
               {occurrenceLabel}
             </Select.Trigger>
@@ -308,9 +310,9 @@
               {/each}
             </Select.Content>
           </Select.Root>
-          {#if occurrenceError}
+          {#if addErrors.occurrence}
             <p id="item-occurrence-error" class="text-destructive text-sm font-medium">
-              {occurrenceError}
+              {addErrors.occurrence}
             </p>
           {/if}
         </div>
@@ -368,15 +370,15 @@
                       bind:ref={editNameInputEl}
                       bind:value={editName}
                       required
-                      aria-invalid={editNameError ? 'true' : undefined}
-                      aria-describedby={editNameError ? `edit-name-${item.id}-error` : undefined}
+                      aria-invalid={editErrors.name ? 'true' : undefined}
+                      aria-describedby={editErrors.name ? `edit-name-${item.id}-error` : undefined}
                     />
-                    {#if editNameError}
+                    {#if editErrors.name}
                       <p
                         id={`edit-name-${item.id}-error`}
                         class="text-destructive text-xs font-medium"
                       >
-                        {editNameError}
+                        {editErrors.name}
                       </p>
                     {/if}
                   </div>
@@ -396,17 +398,17 @@
                         step="0.01"
                         bind:value={editAmount}
                         required
-                        aria-invalid={editAmountError ? 'true' : undefined}
-                        aria-describedby={editAmountError
+                        aria-invalid={editErrors.amount ? 'true' : undefined}
+                        aria-describedby={editErrors.amount
                           ? `edit-amount-${item.id}-error`
                           : undefined}
                       />
-                      {#if editAmountError}
+                      {#if editErrors.amount}
                         <p
                           id={`edit-amount-${item.id}-error`}
                           class="text-destructive text-xs font-medium"
                         >
-                          {editAmountError}
+                          {editErrors.amount}
                         </p>
                       {/if}
                     </div>
@@ -421,8 +423,8 @@
                         <Select.Trigger
                           id={`edit-occurrence-${item.id}`}
                           class="w-full"
-                          aria-invalid={editOccurrenceError ? 'true' : undefined}
-                          aria-describedby={editOccurrenceError
+                          aria-invalid={editErrors.occurrence ? 'true' : undefined}
+                          aria-describedby={editErrors.occurrence
                             ? `edit-occurrence-${item.id}-error`
                             : undefined}
                         >
@@ -434,12 +436,12 @@
                           {/each}
                         </Select.Content>
                       </Select.Root>
-                      {#if editOccurrenceError}
+                      {#if editErrors.occurrence}
                         <p
                           id={`edit-occurrence-${item.id}-error`}
                           class="text-destructive text-xs font-medium"
                         >
-                          {editOccurrenceError}
+                          {editErrors.occurrence}
                         </p>
                       {/if}
                     </div>
