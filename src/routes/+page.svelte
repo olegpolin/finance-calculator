@@ -60,8 +60,7 @@
 
   const yearlyFor = (item: SpendingItem) => item.amount * occurrenceMultiplier[item.occurrence];
 
-  const currency = (n: number) =>
-    n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  const currency = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
   function validateForm(
     submitted: boolean,
@@ -73,11 +72,7 @@
     return {
       name: !name.trim() ? 'Enter an item name.' : null,
       amount:
-        amount == null
-          ? 'Enter an amount.'
-          : amount <= 0
-            ? 'Amount must be greater than 0.'
-            : null,
+        amount == null ? 'Enter an amount.' : amount <= 0 ? 'Amount must be greater than 0.' : null,
       occurrence: !occurrence ? 'Choose how often you pay.' : null
     };
   }
@@ -119,13 +114,9 @@
   let editSubmitted = $state(false);
   let editNameInputEl = $state<HTMLInputElement | null>(null);
 
-  const editErrors = $derived(
-    validateForm(editSubmitted, editName, editAmount, editOccurrence)
-  );
+  const editErrors = $derived(validateForm(editSubmitted, editName, editAmount, editOccurrence));
   const editOccurrenceLabel = $derived(
-    editOccurrence
-      ? occurrenceOptions.find((o) => o.value === editOccurrence)?.label
-      : 'Occurrence'
+    editOccurrence ? occurrenceOptions.find((o) => o.value === editOccurrence)?.label : 'Occurrence'
   );
 
   const items = $derived(persistedItems.current);
@@ -215,9 +206,7 @@
     const newAmount = editAmount;
     const newOccurrence = editOccurrence;
     persistedItems.current = persistedItems.current.map((i) =>
-      i.id === id
-        ? { ...i, name: trimmed, amount: newAmount, occurrence: newOccurrence }
-        : i
+      i.id === id ? { ...i, name: trimmed, amount: newAmount, occurrence: newOccurrence } : i
     );
     resetEdit();
   }
@@ -240,18 +229,16 @@
 
 <div class="mx-auto w-full max-w-5xl px-4 pb-12 lg:px-8">
   <div
-    class="border-2 border-border bg-primary text-primary-foreground rounded-md shadow-md mb-10 p-6 text-center"
+    class="mb-10 rounded-md border-2 border-border bg-primary p-6 text-center text-primary-foreground shadow-md"
   >
     <h1 class="text-4xl font-black tracking-tight uppercase">Finance Calculator</h1>
-    <p class="mt-2 font-medium">
-      Calculate how much you are spending on everyday items.
-    </p>
+    <p class="mt-2 font-medium">Calculate how much you are spending on everyday items.</p>
   </div>
 
   <div class="grid gap-8 lg:grid-cols-2">
     <section class="space-y-6">
       <form
-        class="border-2 border-border bg-card rounded-md shadow-md p-6 space-y-5"
+        class="space-y-5 rounded-md border-2 border-border bg-card p-6 shadow-md"
         onsubmit={addItem}
       >
         <div class="space-y-2">
@@ -265,7 +252,7 @@
             aria-describedby={addErrors.name ? 'item-name-error' : undefined}
           />
           {#if addErrors.name}
-            <p id="item-name-error" class="text-destructive text-sm font-medium">
+            <p id="item-name-error" class="text-sm font-medium text-destructive">
               {addErrors.name}
             </p>
           {/if}
@@ -285,7 +272,7 @@
             aria-describedby={addErrors.amount ? 'item-amount-error' : undefined}
           />
           {#if addErrors.amount}
-            <p id="item-amount-error" class="text-destructive text-sm font-medium">
+            <p id="item-amount-error" class="text-sm font-medium text-destructive">
               {addErrors.amount}
             </p>
           {/if}
@@ -311,7 +298,7 @@
             </Select.Content>
           </Select.Root>
           {#if addErrors.occurrence}
-            <p id="item-occurrence-error" class="text-destructive text-sm font-medium">
+            <p id="item-occurrence-error" class="text-sm font-medium text-destructive">
               {addErrors.occurrence}
             </p>
           {/if}
@@ -322,23 +309,20 @@
 
       <div class="space-y-3">
         <div class="flex items-center justify-between gap-2">
-          <h2 class="text-sm font-black uppercase tracking-wide">Added items</h2>
+          <h2 class="text-sm font-black tracking-wide uppercase">Added items</h2>
           {#if items.length > 0}
             <AlertDialog.Root>
-              <AlertDialog.Trigger
-                class={buttonVariants({ variant: 'outline', size: 'sm' })}
-              >
+              <AlertDialog.Trigger class={buttonVariants({ variant: 'outline', size: 'sm' })}>
                 Clear all
               </AlertDialog.Trigger>
               <AlertDialog.Content>
                 <AlertDialog.Header>
-                  <AlertDialog.Title class="font-black uppercase tracking-tight">
+                  <AlertDialog.Title class="font-black tracking-tight uppercase">
                     Clear all items?
                   </AlertDialog.Title>
                   <AlertDialog.Description>
                     This removes all {items.length}
-                    {items.length === 1 ? 'item' : 'items'} from your list. This action cannot
-                    be undone.
+                    {items.length === 1 ? 'item' : 'items'} from your list. This action cannot be undone.
                   </AlertDialog.Description>
                 </AlertDialog.Header>
                 <AlertDialog.Footer>
@@ -352,13 +336,13 @@
           {/if}
         </div>
         {#if items.length === 0}
-          <p class="text-muted-foreground text-sm">No items added yet.</p>
+          <p class="text-sm text-muted-foreground">No items added yet.</p>
         {:else}
           <Item.Group class="gap-3">
             {#each items as item (item.id)}
               {#if editingId === item.id}
                 <form
-                  class="border-2 border-border bg-card rounded-md shadow-md p-4 space-y-3"
+                  class="space-y-3 rounded-md border-2 border-border bg-card p-4 shadow-md"
                   onsubmit={saveEdit}
                 >
                   <div class="space-y-1">
@@ -376,7 +360,7 @@
                     {#if editErrors.name}
                       <p
                         id={`edit-name-${item.id}-error`}
-                        class="text-destructive text-xs font-medium"
+                        class="text-xs font-medium text-destructive"
                       >
                         {editErrors.name}
                       </p>
@@ -385,10 +369,7 @@
 
                   <div class="grid gap-3 sm:grid-cols-2">
                     <div class="space-y-1">
-                      <Label
-                        for={`edit-amount-${item.id}`}
-                        class="text-xs font-bold uppercase"
-                      >
+                      <Label for={`edit-amount-${item.id}`} class="text-xs font-bold uppercase">
                         Amount ($)
                       </Label>
                       <Input
@@ -406,17 +387,14 @@
                       {#if editErrors.amount}
                         <p
                           id={`edit-amount-${item.id}-error`}
-                          class="text-destructive text-xs font-medium"
+                          class="text-xs font-medium text-destructive"
                         >
                           {editErrors.amount}
                         </p>
                       {/if}
                     </div>
                     <div class="space-y-1">
-                      <Label
-                        for={`edit-occurrence-${item.id}`}
-                        class="text-xs font-bold uppercase"
-                      >
+                      <Label for={`edit-occurrence-${item.id}`} class="text-xs font-bold uppercase">
                         Frequency
                       </Label>
                       <Select.Root type="single" bind:value={editOccurrence}>
@@ -439,7 +417,7 @@
                       {#if editErrors.occurrence}
                         <p
                           id={`edit-occurrence-${item.id}-error`}
-                          class="text-destructive text-xs font-medium"
+                          class="text-xs font-medium text-destructive"
                         >
                           {editErrors.occurrence}
                         </p>
@@ -459,7 +437,9 @@
                   <Item.Content>
                     <Item.Title class="font-bold">{item.name}</Item.Title>
                     <Item.Description>
-                      {currency(item.amount)} / {item.occurrence} · {currency(toPeriod(yearlyFor(item)))} per {periodLabel}
+                      {currency(item.amount)} / {item.occurrence} · {currency(
+                        toPeriod(yearlyFor(item))
+                      )} per {periodLabel}
                     </Item.Description>
                   </Item.Content>
                   <Item.Actions class="gap-2">
@@ -489,9 +469,9 @@
     </section>
 
     <section class="space-y-6">
-      <div class="border-2 border-border bg-card rounded-md shadow-md p-6">
+      <div class="rounded-md border-2 border-border bg-card p-6 shadow-md">
         <div class="flex items-center justify-between gap-3">
-          <div class="text-sm font-black uppercase tracking-wide">
+          <div class="text-sm font-black tracking-wide uppercase">
             Total {periodTitle} spending
           </div>
           <div class="flex items-center gap-2 text-xs font-bold uppercase">
@@ -504,9 +484,9 @@
         <div class="mt-4">
           {#if chartData.length === 0}
             <div
-              class="border-2 border-dashed border-border rounded-md text-muted-foreground flex aspect-square flex-col items-center justify-center gap-2 px-4 text-center text-sm"
+              class="flex aspect-square flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-border px-4 text-center text-sm text-muted-foreground"
             >
-              <div class="text-foreground text-4xl font-black tabular-nums">
+              <div class="text-4xl font-black text-foreground tabular-nums">
                 {currency(0)}
               </div>
               <p>Add an item to see the breakdown.</p>
@@ -535,15 +515,13 @@
                         {@const displayLabel = chartConfig[lookupKey]?.label ?? item.label}
                         <span
                           style="--color-bg: {item.color}; --color-border: {item.color};"
-                          class="border-(--color-border) bg-(--color-bg) size-2.5 shrink-0 rounded-xs"
+                          class="size-2.5 shrink-0 rounded-xs border-(--color-border) bg-(--color-bg)"
                         ></span>
-                        <div
-                          class="flex flex-1 items-center justify-between gap-3 leading-none"
-                        >
+                        <div class="flex flex-1 items-center justify-between gap-3 leading-none">
                           <span class="text-muted-foreground">{displayLabel}</span>
-                          <span class="text-foreground font-mono font-medium tabular-nums">
+                          <span class="font-mono font-medium text-foreground tabular-nums">
                             {currency(toPeriod(num))}
-                            <span class="text-muted-foreground ml-1 font-normal">
+                            <span class="ml-1 font-normal text-muted-foreground">
                               ({pct.toFixed(1)}%)
                             </span>
                           </span>
@@ -557,15 +535,16 @@
                 class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center"
               >
                 <div
-                  class="text-muted-foreground text-[0.625rem] font-black uppercase tracking-widest"
+                  class="text-[0.625rem] font-black tracking-widest text-muted-foreground uppercase"
                 >
                   Per {periodLabel}
                 </div>
-                <div class="text-3xl font-black tabular-nums leading-tight">
+                <div class="text-3xl leading-tight font-black tabular-nums">
                   {currency(toPeriod(totalYearly))}
                 </div>
-                <div class="text-muted-foreground text-xs font-medium">
-                  {items.length} {items.length === 1 ? 'item' : 'items'}
+                <div class="text-xs font-medium text-muted-foreground">
+                  {items.length}
+                  {items.length === 1 ? 'item' : 'items'}
                 </div>
               </div>
             </div>
@@ -575,7 +554,7 @@
 
       {#if sortedItems.length > 0}
         <div class="space-y-3">
-          <h2 class="text-sm font-black uppercase tracking-wide">Top spending contributors</h2>
+          <h2 class="text-sm font-black tracking-wide uppercase">Top spending contributors</h2>
           <Item.Group class="gap-3">
             {#each sortedItems as entry (entry.id)}
               {@const pct = totalYearly > 0 ? (entry.yearly / totalYearly) * 100 : 0}
