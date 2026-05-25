@@ -9,6 +9,7 @@
   import * as Chart from '$lib/components/ui/chart';
   import { buttonVariants } from '$lib/components/ui/button';
   import { Progress } from '$lib/components/ui/progress';
+  import { Switch } from '$lib/components/ui/switch';
   import { PieChart } from 'layerchart';
 
   type Occurrence = 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -64,6 +65,12 @@
     monthly: 12,
     yearly: 1
   };
+
+  // Period view (yearly vs monthly) — data stays normalized to yearly internally.
+  let monthly = $state(false);
+  const periodLabel = $derived(monthly ? 'month' : 'year');
+  const periodTitle = $derived(monthly ? 'monthly' : 'yearly');
+  const toPeriod = (yearly: number) => (monthly ? yearly / 12 : yearly);
 
   // Add-form state (top of page)
   let name = $state('');
@@ -450,7 +457,7 @@
                   <Item.Content>
                     <Item.Title class="font-bold">{item.name}</Item.Title>
                     <Item.Description>
-                      {currency(item.amount)} / {item.occurrence} · {currency(yearlyFor(item))} per year
+                      {currency(item.amount)} / {item.occurrence} · {currency(toPeriod(yearlyFor(item)))} per {periodLabel}
                     </Item.Description>
                   </Item.Content>
                   <Item.Actions class="gap-2">
@@ -481,7 +488,16 @@
 
     <section class="space-y-6">
       <div class="border-2 border-border bg-card rounded-md shadow-md p-6">
-        <div class="text-sm font-black uppercase tracking-wide">Total yearly spending</div>
+        <div class="flex items-center justify-between gap-3">
+          <div class="text-sm font-black uppercase tracking-wide">
+            Total {periodTitle} spending
+          </div>
+          <div class="flex items-center gap-2 text-xs font-bold uppercase">
+            <span class={monthly ? 'text-muted-foreground' : ''}>Yearly</span>
+            <Switch bind:checked={monthly} aria-label="Toggle monthly view" />
+            <span class={monthly ? '' : 'text-muted-foreground'}>Monthly</span>
+          </div>
+        </div>
 
         <div class="mt-4">
           {#if chartData.length === 0}
@@ -517,14 +533,14 @@
                         {@const displayLabel = chartConfig[lookupKey]?.label ?? item.label}
                         <span
                           style="--color-bg: {item.color}; --color-border: {item.color};"
-                          class="border-(--color-border) bg-(--color-bg) size-2.5 shrink-0 rounded-[2px]"
+                          class="border-(--color-border) bg-(--color-bg) size-2.5 shrink-0 rounded-xs"
                         ></span>
                         <div
                           class="flex flex-1 items-center justify-between gap-3 leading-none"
                         >
                           <span class="text-muted-foreground">{displayLabel}</span>
                           <span class="text-foreground font-mono font-medium tabular-nums">
-                            {currency(num)}
+                            {currency(toPeriod(num))}
                             <span class="text-muted-foreground ml-1 font-normal">
                               ({pct.toFixed(1)}%)
                             </span>
@@ -541,10 +557,10 @@
                 <div
                   class="text-muted-foreground text-[0.625rem] font-black uppercase tracking-widest"
                 >
-                  Per year
+                  Per {periodLabel}
                 </div>
                 <div class="text-3xl font-black tabular-nums leading-tight">
-                  {currency(totalYearly)}
+                  {currency(toPeriod(totalYearly))}
                 </div>
                 <div class="text-muted-foreground text-xs font-medium">
                   {items.length} {items.length === 1 ? 'item' : 'items'}
@@ -571,7 +587,7 @@
                 <Item.Content>
                   <Item.Title class="font-bold">{entry.name}</Item.Title>
                   <Item.Description>
-                    {currency(entry.yearly)} · Per year
+                    {currency(toPeriod(entry.yearly))} · Per {periodLabel}
                   </Item.Description>
                   <Progress value={pct} class="mt-2" style="--primary: {entry.color};" />
                 </Item.Content>
