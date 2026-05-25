@@ -481,36 +481,53 @@
     <section class="space-y-6">
       <div class="border-2 border-border bg-card rounded-md shadow-md p-6">
         <div class="text-sm font-black uppercase tracking-wide">Total yearly spending</div>
-        <div class="mt-1 text-5xl font-black tabular-nums">
-          {currency(totalYearly)}
-        </div>
 
-        <div class="mt-6">
+        <div class="mt-4">
           {#if chartData.length === 0}
             <div
-              class="border-2 border-dashed border-border rounded-md text-muted-foreground flex aspect-square items-center justify-center text-sm"
+              class="border-2 border-dashed border-border rounded-md text-muted-foreground flex aspect-square flex-col items-center justify-center gap-2 px-4 text-center text-sm"
             >
-              Add an item to see the breakdown.
+              <div class="text-foreground text-4xl font-black tabular-nums">
+                {currency(0)}
+              </div>
+              <p>Add an item to see the breakdown.</p>
             </div>
           {:else}
-            <Chart.Container config={chartConfig} class="mx-auto aspect-square max-h-75">
-              <PieChart
-                data={chartData}
-                key="key"
-                value="value"
-                c="color"
-                innerRadius={90}
-                padding={29}
-                props={{
-                  pie: { motion: 'tween' },
-                  arc: { class: 'stroke-2 stroke-border' }
-                }}
+            <div class="relative mx-auto aspect-square max-h-75">
+              <Chart.Container config={chartConfig} class="aspect-square h-full w-full">
+                <PieChart
+                  data={chartData}
+                  key="key"
+                  value="value"
+                  c="color"
+                  innerRadius={90}
+                  padding={29}
+                  props={{
+                    pie: { motion: 'tween' },
+                    arc: { class: 'stroke-2 stroke-border' }
+                  }}
+                >
+                  {#snippet tooltip()}
+                    <Chart.Tooltip hideLabel />
+                  {/snippet}
+                </PieChart>
+              </Chart.Container>
+              <div
+                class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center"
               >
-                {#snippet tooltip()}
-                  <Chart.Tooltip hideLabel />
-                {/snippet}
-              </PieChart>
-            </Chart.Container>
+                <div
+                  class="text-muted-foreground text-[0.625rem] font-black uppercase tracking-widest"
+                >
+                  Per year
+                </div>
+                <div class="text-3xl font-black tabular-nums leading-tight">
+                  {currency(totalYearly)}
+                </div>
+                <div class="text-muted-foreground text-xs font-medium">
+                  {items.length} {items.length === 1 ? 'item' : 'items'}
+                </div>
+              </div>
+            </div>
           {/if}
         </div>
       </div>
