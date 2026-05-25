@@ -5,7 +5,9 @@
   import { Label } from '$lib/components/ui/label';
   import * as Select from '$lib/components/ui/select';
   import * as Item from '$lib/components/ui/item';
+  import * as AlertDialog from '$lib/components/ui/alert-dialog';
   import * as Chart from '$lib/components/ui/chart';
+  import { buttonVariants } from '$lib/components/ui/button';
   import { Progress } from '$lib/components/ui/progress';
   import { PieChart } from 'layerchart';
 
@@ -214,6 +216,11 @@
     persistedItems.current = persistedItems.current.filter((i) => i.id !== id);
     if (editingId === id) resetEdit();
   }
+
+  function clearAll() {
+    persistedItems.current = [];
+    resetEdit();
+  }
 </script>
 
 <svelte:head>
@@ -304,7 +311,36 @@
       </form>
 
       <div class="space-y-3">
-        <h2 class="text-sm font-black uppercase tracking-wide">Added items</h2>
+        <div class="flex items-center justify-between gap-2">
+          <h2 class="text-sm font-black uppercase tracking-wide">Added items</h2>
+          {#if items.length > 0}
+            <AlertDialog.Root>
+              <AlertDialog.Trigger
+                class={buttonVariants({ variant: 'outline', size: 'sm' })}
+              >
+                Clear all
+              </AlertDialog.Trigger>
+              <AlertDialog.Content>
+                <AlertDialog.Header>
+                  <AlertDialog.Title class="font-black uppercase tracking-tight">
+                    Clear all items?
+                  </AlertDialog.Title>
+                  <AlertDialog.Description>
+                    This removes all {items.length}
+                    {items.length === 1 ? 'item' : 'items'} from your list. This action cannot
+                    be undone.
+                  </AlertDialog.Description>
+                </AlertDialog.Header>
+                <AlertDialog.Footer>
+                  <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+                  <AlertDialog.Action variant="destructive" onclick={clearAll}>
+                    Clear all
+                  </AlertDialog.Action>
+                </AlertDialog.Footer>
+              </AlertDialog.Content>
+            </AlertDialog.Root>
+          {/if}
+        </div>
         {#if items.length === 0}
           <p class="text-muted-foreground text-sm">No items added yet.</p>
         {:else}
