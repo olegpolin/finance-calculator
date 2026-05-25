@@ -513,7 +513,7 @@
                         {@const pct = totalYearly > 0 ? (num / totalYearly) * 100 : 0}
                         {@const lookupKey = String(item.key ?? item.label ?? '')}
                         {@const displayLabel = chartConfig[lookupKey]?.label ?? item.label}
-                        {@const itemColor = `var(--color-${lookupKey})`}
+                        {@const itemColor = chartConfig[lookupKey]?.color}
                         <span
                           style="--color-bg: {itemColor}; --color-border: {itemColor};"
                           class="size-2.5 shrink-0 rounded-xs border-(--color-border) bg-(--color-bg)"
