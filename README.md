@@ -8,6 +8,7 @@ Calculate how much you are spending on everyday items.
 - [SvelteKit](https://svelte.dev/docs/kit)
 - [Tailwind CSS](https://tailwindcss.com)
 - [shadcn-svelte](https://www.shadcn-svelte.com)
+- [neobrutalism-svelte](https://neobrutalism-svelte.flenze.com)
 
 ## Developing
 
