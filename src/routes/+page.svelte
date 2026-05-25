@@ -133,6 +133,7 @@
   const chartData = $derived(
     sortedItems.map((item) => ({
       key: item.id,
+      label: item.name,
       value: item.yearly,
       color: `var(--color-${item.id})`
     }))
@@ -508,7 +509,29 @@
                   }}
                 >
                   {#snippet tooltip()}
-                    <Chart.Tooltip hideLabel />
+                    <Chart.Tooltip hideLabel>
+                      {#snippet formatter({ value, item })}
+                        {@const num = Number(value)}
+                        {@const pct = totalYearly > 0 ? (num / totalYearly) * 100 : 0}
+                        {@const lookupKey = String(item.key ?? item.label ?? '')}
+                        {@const displayLabel = chartConfig[lookupKey]?.label ?? item.label}
+                        <span
+                          style="--color-bg: {item.color}; --color-border: {item.color};"
+                          class="border-(--color-border) bg-(--color-bg) size-2.5 shrink-0 rounded-[2px]"
+                        ></span>
+                        <div
+                          class="flex flex-1 items-center justify-between gap-3 leading-none"
+                        >
+                          <span class="text-muted-foreground">{displayLabel}</span>
+                          <span class="text-foreground font-mono font-medium tabular-nums">
+                            {currency(num)}
+                            <span class="text-muted-foreground ml-1 font-normal">
+                              ({pct.toFixed(1)}%)
+                            </span>
+                          </span>
+                        </div>
+                      {/snippet}
+                    </Chart.Tooltip>
                   {/snippet}
                 </PieChart>
               </Chart.Container>
